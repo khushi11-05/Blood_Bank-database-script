@@ -1,0 +1,264 @@
+﻿Query1:Determine the quantity of blood available at a specific blood bank, categorized by blood group.
+ 
+SELECT d.blood_group, SUM(b.quantity_ml) AS total_blood_ml
+FROM blood b
+LEFT JOIN donated_to_hospital dh ON b.sample_id = dh.sample_id
+LEFT JOIN donated_to_reciever dr ON b.sample_id = dr.sample_id
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+JOIN further_test ft on ft.sample_id = b.sample_id
+WHERE b.bank_id = 12
+  AND dh.sample_id IS NULL
+  AND dr.sample_id IS NULL
+  And ft.hiv_aids = FALSE
+  and ft.hepatitis= FALSE
+GROUP BY d.blood_group;
+ 
+ 
+Query 2: Count the number of staff members assigned to a specific type of work in a blood bank.
+ 
+SELECT COUNT(*) AS total_staff
+FROM staff_worked_on
+WHERE bank_id = 1
+  AND type_of_work = 'doctor'
+  AND date_of_leaving IS NULL;
+  
+ 
+Query 3: Display information about all staff members performing specific types of work in a designated blood bank.
+ 
+  SELECT bbs. name, bbs. contact, swo.type_of_work  AS staff
+FROM staff_worked_on swo
+JOIN blood_bank_staff bbs ON swo.staff_adhaar_id = bbs.staff_adhaar_id
+WHERE swo.bank_id = 5
+  AND swo.type_of_work = 'doctor'
+  AND swo.date_of_leaving IS NULL;
+ 
+ 
+Query 4: Display information about recipients who have requested blood and whose requests are still pending.
+
+
+SELECT r.name, r.blood_group,r.pincode, rr.date_requested,r.contact,rr.status
+FROM receiver_request_to rr
+JOIN receiver r ON rr.receiver_adhaar_id = r.receiver_adhaar_id
+WHERE rr.bank_id = 1
+  AND rr.status = ‘P';
+ 
+ 
+Query 5: Display information about hospitals that have requested blood and whose requests are still pending.
+
+
+SELECT h.name,h.pincode,hr.blood_group, hr.date_requested, h.contact
+FROM hospital_request_to hr
+JOIN hospital h ON hr.hospital_id = h.hospital_id
+WHERE hr.bank_id = 7
+  AND hr.accepted = ‘P';
+ 
+ 
+Query 6:Display blood units in a blood bank that are free of any viruses, are not expired, and have not yet been allocated to any recipient.
+
+
+SELECT b.sample_id, d.blood_group, b.quantity_ml
+FROM blood b
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+LEFT JOIN further_test ft ON b.sample_id = ft.sample_id
+LEFT JOIN donated_to_receiver dr ON b.sample_id = dr.sample_id
+LEFT JOIN donated_to_hospital dh ON b.sample_id = dh.sample_id
+WHERE b.bank_id = 12
+  AND (ft. hepatitis = FALSE OR ft. hepatitis IS NULL)
+  AND (ft.hiv_aids = FALSE OR ft.hiv_aids IS NULL)
+  AND dr.sample_id IS NULL
+  AND dh.sample_id IS NULL
+  AND (AGE('2024-08-30'::DATE, b.date_taken_out) <= '42 days'::INTERVAL);
+ 
+ 
+Query 7:Identify a suitable blood match for a given receiver, where the blood group of the sample matches the receiver's blood group. Additionally, ensure that the donor of the sample and the receiver do not share the same parents' Aadhaar ID, and that neither the donor nor the receiver is a parent of the other.
+ 
+ SELECT b.sample_id, d.donor_adhaar_id,d.blood_group,r.blood_group,b.bank_id,r.father_adhaar_id,r.mother_adhaar_id,d.father_adhaar_id,d.mother_adhaar_id
+FROM blood b
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+JOIN receiver r ON r.blood_group = d.blood_group
+WHERE r.reciever_adhaar_id = '123456789005'
+  AND r.blood_group = d.blood_group
+  AND (r.mother_adhaar_id IS DISTINCT FROM d.mother_adhaar_id AND r.father_adhaar_id IS DISTINCT FROM d.father_adhaar_id)
+  AND NOT (r.reciever_adhaar_id = d.mother_adhaar_id AND r.reciever_adhaar_id = d.father_adhaar_id)
+  AND NOT (d.donor_adhaar_id = r.mother_adhaar_id AND d.donor_adhaar_id = r.father_adhaar_id);
+ 
+ 
+Query 8:Count the inventory in a specific blood bank.
+ 
+SELECT item_name, COUNT(item_code) AS total_inventory
+FROM inventory
+WHERE bank_id = 2
+GROUP BY item_name;
+ 
+ 
+Query 9:Determine the availability of a specific blood group in our inventory for an emergency situation at a hospital. Provide details of blood units that meet the following criteria: they have not been donated to anyone, are free from infection, and have not expired. Include the quantity of each eligible blood unit.
+ 
+SELECT d.blood_group, b.quantity_ml, bb.name, bb.pincode
+FROM blood b
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+LEFT JOIN further_test ft ON b.sample_id = ft.sample_id
+LEFT JOIN donated_to_reciever dr ON b.sample_id = dr.sample_id
+LEFT JOIN donated_to_hospital dh ON b.sample_id = dh.sample_id
+Join blood_bank bb on bb.bank_id = b.bank_id
+WHERE d.blood_group='A+' AND
+   (ft. hepatitis = FALSE OR ft. hepatitis IS NULL)
+  AND (ft.hiv_aids = FALSE OR ft.hiv_aids IS NULL)
+  AND dr.sample_id IS NULL
+  AND dh.sample_id IS NULL
+  AND (AGE('2024-08-30'::DATE, b.date_taken_out) <= '42 days'::INTERVAL);
+ 
+ 
+Query 10: Identify the nearest blood bank to the user-provided pin code that has the specific blood type.
+ 
+SELECT  bb.name,bb.pincode,d.blood_group, b.quantity_ml
+FROM blood b
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+JOIN blood_bank bb ON b.bank_id = bb.bank_id AND bb.pincode = '700003'
+LEFT JOIN further_test ft ON b.sample_id = ft.sample_id
+LEFT JOIN donated_to_receiver dr ON b.sample_id = dr.sample_id
+LEFT JOIN donated_to_hospital dh ON b.sample_id = dh.sample_id
+WHERE d.blood_group = 'A+'
+  AND (ft. hepatitis = FALSE)
+  AND (ft.hiv_aids = FALSE)
+  AND dr.sample_id IS NULL
+  AND dh.sample_id IS NULL
+  AND (AGE('2024-08-30'::DATE, b.date_taken_out) <= '42 days'::INTERVAL);
+ 
+ 
+Query 11: Display upcoming blood donation drives that will be managed by a specific blood bank.
+ 
+SELECT d.drive_id, d.date_organised, o.organisation_name, o.Pincode, si.name
+FROM drive d
+JOIN organisation o ON d.organised_at = o.organisation_id
+JOIN blood_bank_staff si ON si.staff_adhaar_id = d.managed_by
+join staff_worked_on sw on sw.staff_adhaar_id = si.staff_adhaar_id
+join blood_bank b on b.bank_id = sw.bank_id
+WHERE d.date_organised >= '2017-07-02' 
+  AND b.bank_id = 1
+ORDER BY d.date_organised;
+ 
+Query 12: Determine the number of blood samples collected from a specific drive, along with their respective blood groups.
+
+
+SELECT d.blood_group, SUM(b.quantity_ml) as Amount_collected
+FROM blood b
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+WHERE b.drive_id = 2001
+GROUP BY d.blood_group;
+ 
+ 
+Query 13: Retrieve the names of staff members who worked on a specific drive.
+
+
+ SELECT  (bbs. name) AS staff_names,sw.type_of_work
+FROM drive_staff ds
+JOIN blood_bank_staff bbs ON ds.staff_id = bbs.staff_adhaar_id
+join staff_worked_on sw on sw.staff_adhaar_id=bbs.staff_adhaar_id
+WHERE ds.drive_id = 2005;
+ 
+ 
+Query 14: Determine the number of staff members who worked on a specific drive.
+ 
+SELECT COUNT(*) AS staff_count
+FROM drive_staff
+WHERE drive_id = 2004;
+
+
+Query 15:Find a blood bank nearest to me. For a given pincode.
+
+
+SELECT * FROM blood_bank WHERE Pincode = '201303';
+ 
+Query 16:Retrieve the request status for a given receiver ID.
+ 
+SELECT rr.date_requested,rr.status
+FROM receiver_request_to as rr
+WHERE rr.receiver_adhaar_id= ‘123456789005';
+ 
+ 
+Query 17:Retrieve the request status for a given hospital ID.
+ 
+SELECT h.date_requested,h.blood_group,h.accepted
+FROM hospital_request_to as h
+WHERE h.hospital_id= ‘1005';
+ 
+ 
+Query 18:Retrieve the test results of a donor on a specific date.
+
+
+SELECT *
+FROM test
+WHERE donor_adhaar_id = '230986654377'
+AND date_of_test = ‘2024-04-12’;
+ 
+ 
+Query 19: Display the previous donation date for a specific donor.
+
+
+SELECT b.date_taken_out,b.quantity_ml
+FROM blood b
+JOIN donor d ON b.donated_by = d.donor_adhaar_id
+WHERE d.donor_adhaar_id = '901237767890';
+ 
+ 
+Query 20: Retrieve any upcoming blood donation drives scheduled to take place in a specific pin code.
+ 
+SELECT d.drive_id, o.organization_name,d.date_organized
+FROM drive d
+JOIN organization o ON d.organized_at = o.organization_id
+WHERE o.Pincode = '560001'
+and d.date_organized>= ‘2012-03-01’;
+
+
+
+
+Query 21: Display the previous date of blood receipt for a specific recipient.
+
+
+SELECT r.date_given, bb.name
+FROM blood b
+JOIN donated_to_reciever r ON b.sample_id = r.sample_id
+join blood_bank bb on bb.bank_id = b.bank_id
+WHERE r.receiver_adhaar_id = '778901334567';
+
+
+Query 22: Display the donation history to a particular hospital, including information about received blood units, donors, and dates.
+
+
+SELECT dr.date_given,bb.name,d.blood_group,b.quantity_ml
+FROM donated_to_hospital dr 
+join blood b on b.sample_id = dr.sample_id
+join blood_bank bb on bb.bank_id = b.bank_id
+join donor d on d.donor_adhaar_id = b.donated_by
+WHERE dr.hospital_id = '1305';
+
+
+Query 23: Display the donation history to a particular organization, including information about received blood units, donors, and dates.
+
+
+SELECT org.organisation_name, drv.date_organised, SUM(quantity_ml) as quantity_ml
+FROM drive drv
+JOIN organisation org ON org.organisation_id = drv.organised_at
+JOIN blood b ON b.drive_id = drv.drive_id
+WHERE org.organisation_id = '1002'
+GROUP BY org.organisation_name, drv.date_organised;
+
+
+Query 24: For a given staff ID , find where that staff has worked before.
+
+
+SELECT bank_id,date_of_joining,date_of_leaving,type_of_work
+FROM staff_worked_on
+WHERE staff_adhaar_id = '800070006001';
+
+
+
+
+Query 25: Show the test result of a sample that was donated by the donor.
+
+
+SELECT b.date_taken_out,ft.*
+from blood b 
+JOIN further_test ft on ft.sample_id=b.sample_id
+join donor d on d.donor_adhaar_id = b.donated_by
+where d.donor_adhaar_id='223486789012';

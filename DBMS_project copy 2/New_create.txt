@@ -1,0 +1,195 @@
+﻿CREATE SCRIPT
+CREATE TABLE donor 
+  ( 
+     donor_adhaar_id  CHAR(12) PRIMARY KEY, 
+     NAME             VARCHAR(50) NOT NULL, 
+     gender           CHAR(1) NOT NULL, 
+     blood_group      VARCHAR(3) NOT NULL, 
+     pincode          CHAR(6) NOT NULL, 
+     contact          CHAR(14) NOT NULL, 
+     mother_adhaar_id CHAR(12), 
+     father_adhaar_id CHAR(12), 
+     date_of_birth    DATE NOT NULL 
+  ); 
+CREATE TABLE blood_bank 
+  ( 
+     bank_id INT PRIMARY KEY, 
+     NAME    VARCHAR(50) NOT NULL, 
+     pincode CHAR(6) NOT NULL 
+  ); 
+CREATE TABLE hospital 
+  ( 
+     hospital_id INT PRIMARY KEY, 
+     NAME        VARCHAR(50) NOT NULL, 
+     contact     CHAR(14) NOT NULL, 
+     pincode     CHAR(6) NOT NULL 
+  ); 
+CREATE TABLE receiver 
+  ( 
+     reciever_adhaar_id CHAR(12) PRIMARY KEY, 
+     NAME               VARCHAR(50) NOT NULL, 
+     gender             CHAR(1) NOT NULL, 
+     blood_group        VARCHAR(3) NOT NULL, 
+     pincode            CHAR(6) NOT NULL, 
+     contact            CHAR(14) NOT NULL, 
+     mother_adhaar_id   CHAR(12), 
+     father_adhaar_id   CHAR(12), 
+     date_of_birth      DATE NOT NULL 
+  ); 
+CREATE TABLE blood_bank_staff 
+  ( 
+     staff_adhaar_id CHAR(12) NOT NULL, 
+     NAME            VARCHAR(50) NOT NULL, 
+     contact         CHAR(14) NOT NULL, 
+     date_of_birth   DATE NOT NULL, 
+     PRIMARY KEY (staff_adhaar_id) 
+  ); 
+CREATE TABLE organisation 
+  ( 
+     organisation_id   INT PRIMARY KEY, 
+     organisation_name VARCHAR(50), 
+     pincode           CHAR(6) NOT NULL, 
+     contact           CHAR(14) NOT NULL 
+  ); 
+CREATE TABLE volunteer 
+  ( 
+     volunteer_adhaar_id CHAR(12) PRIMARY KEY, 
+     NAME                VARCHAR(20) NOT NULL, 
+     contact             CHAR(14) NOT NULL 
+  ); 
+CREATE TABLE inventory 
+  ( 
+     item_name VARCHAR(20) NOT NULL, 
+     bank_id   INT NOT NULL, 
+     item_code INT NULL, 
+     PRIMARY KEY(item_code), 
+     FOREIGN KEY(bank_id) REFERENCES blood_bank 
+  ); 
+CREATE TABLE drive 
+  ( 
+     drive_id       INT NOT NULL, 
+     date_organised DATE NOT NULL, 
+     organised_at   INT NOT NULL, 
+     managed_by     CHAR(12) NOT NULL, 
+     PRIMARY KEY(drive_id), 
+     FOREIGN KEY(organised_at) REFERENCES organisation, 
+     FOREIGN KEY(managed_by) REFERENCES blood_bank_staff 
+  ); 
+CREATE TABLE volunteered_in 
+  ( 
+     volunteer_adhaar_id CHAR(12) NOT NULL, 
+     drive_id            INT NOT NULL, 
+     PRIMARY KEY(volunteer_adhaar_id, drive_id), 
+     FOREIGN KEY(volunteer_adhaar_id) REFERENCES volunteer, 
+     FOREIGN KEY(drive_id) REFERENCES drive 
+  ); 
+CREATE TABLE staff_worked_on 
+  ( 
+     staff_adhaar_id CHAR(12) NOT NULL, 
+     date_of_joining DATE NOT NULL, 
+     salary          INT NOT NULL, 
+     date_of_leaving DATE, 
+     bank_id         INT NOT NULL, 
+     type_of_work    VARCHAR(20) NOT NULL, 
+     PRIMARY KEY(staff_adhaar_id, date_of_joining), 
+     FOREIGN KEY(bank_id) REFERENCES blood_bank, 
+     FOREIGN KEY(staff_adhaar_id) REFERENCES blood_bank_staff 
+  ); 
+CREATE TABLE hospital_request_to 
+  ( 
+     hospital_id    INT NOT NULL, 
+     date_requested DATE NOT NULL, 
+     bank_id        INT NOT NULL, 
+     blood_group    VARCHAR(3) NOT NULL, 
+     quantity_ml    DECIMAL(6, 3) NOT NULL, 
+     accepted       CHAR(1) NOT NULL, 
+     PRIMARY KEY(hospital_id, bank_id, date_requested, quantity_ml, blood_group) 
+     , 
+     FOREIGN KEY(bank_id) REFERENCES blood_bank, 
+     FOREIGN KEY(hospital_id) REFERENCES hospital 
+  ); 
+CREATE TABLE receiver_request_to 
+  ( 
+     reciever_adhaar_id CHAR(12) NOT NULL, 
+     date_requested     DATE NOT NULL, 
+     bank_id            INT NOT NULL, 
+     quantity_ml        DECIMAL(6, 3) NOT NULL, 
+     status             CHAR(1) NOT NULL, 
+     PRIMARY KEY(reciever_adhaar_id, date_requested, bank_id), 
+     FOREIGN KEY(reciever_adhaar_id) REFERENCES receiver, 
+     FOREIGN KEY(bank_id) REFERENCES blood_bank 
+  ); 
+CREATE TABLE blood 
+  ( 
+     sample_id      INT PRIMARY KEY, 
+     bank_id        INT NOT NULL, 
+     taken_out_by   CHAR(12) NOT NULL, 
+     date_taken_out DATE NOT NULL, 
+     donated_by     CHAR(12) NOT NULL, 
+     quantity_ml    DECIMAL(6, 3) NOT NULL, 
+     drive_id       INT, 
+     FOREIGN KEY(bank_id) REFERENCES blood_bank, 
+     FOREIGN KEY(taken_out_by) REFERENCES blood_bank_staff, 
+     FOREIGN KEY(donated_by) REFERENCES donor, 
+     FOREIGN KEY(drive_id) REFERENCES drive 
+  ); 
+CREATE TABLE drive_staff 
+  ( 
+     drive_id INT NOT NULL, 
+     staff_id CHAR(12) NOT NULL, 
+     PRIMARY KEY(drive_id, staff_id), 
+     FOREIGN KEY(drive_id) REFERENCES drive, 
+     FOREIGN KEY(staff_id) REFERENCES blood_bank_staff 
+  ); 
+CREATE TABLE booked_a_slot 
+  ( 
+     donor_adhaar_id VARCHAR(12) NOT NULL, 
+     date_booked     DATE NOT NULL, 
+     bank_id         INT, 
+     drive_id        INT, 
+     PRIMARY KEY(donor_adhaar_id, date_booked), 
+     FOREIGN KEY(donor_adhaar_id) REFERENCES donor, 
+     FOREIGN KEY(bank_id) REFERENCES blood_bank, 
+     FOREIGN KEY(drive_id) REFERENCES drive 
+  ); 
+CREATE TABLE test 
+  ( 
+     donor_adhaar_id       CHAR(12) NOT NULL, 
+     date_of_test          VARCHAR(12) NOT NULL, 
+     pulse_bpm             INT NOT NULL, 
+     haemoglobin           INT NOT NULL, 
+     any_previous_donation BOOLEAN NOT NULL, 
+     are_you_clean         BOOLEAN NOT NULL, 
+     any_diabetic_problem  BOOLEAN NOT NULL, 
+     PRIMARY KEY(donor_adhaar_id, date_of_test), 
+     FOREIGN KEY(donor_adhaar_id) REFERENCES donor 
+  ); 
+CREATE TABLE further_test 
+  ( 
+     sample_id         INT NOT NULL, 
+     hiv_aids          BOOLEAN NOT NULL, 
+     hepatitis         BOOLEAN NOT NULL, 
+     wbc_cells_per_mcl BIGINT NOT NULL, 
+     rbc_cells_per_mcl DECIMAL(6, 3) NOT NULL, 
+     platelet_per_mcl  INT NOT NULL, 
+     PRIMARY KEY(sample_id), 
+     FOREIGN KEY(sample_id) REFERENCES blood 
+  ); 
+CREATE TABLE donated_to_hospital 
+  ( 
+     hospital_id INT NOT NULL, 
+     sample_id   INT NOT NULL, 
+     date_given  DATE NOT NULL, 
+     PRIMARY KEY(sample_id), 
+     FOREIGN KEY(sample_id) REFERENCES blood, 
+     FOREIGN KEY(hospital_id) REFERENCES hospital 
+  ); 
+CREATE TABLE donated_to_reciever 
+  ( 
+     receiver_adhaar_id CHAR(12) NOT NULL, 
+     sample_id          INT NOT NULL, 
+     date_given         DATE NOT NULL, 
+     PRIMARY KEY(sample_id), 
+     FOREIGN KEY(sample_id) REFERENCES blood, 
+     FOREIGN KEY(receiver_adhaar_id) REFERENCES receiver 
+  );
